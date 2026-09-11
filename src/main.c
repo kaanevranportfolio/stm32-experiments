@@ -8,6 +8,10 @@ static void SystemClock_Config(void);
 static void Error_Handler(void);
 static void GPIO_Init(void);
 
+/* Global + volatile so the debugger's Live Watch engine can poll this
+ * SRAM address while the CPU keeps running, without a breakpoint. */
+volatile uint32_t blink_counter;
+
 int main(void)
 {
     HAL_Init();
@@ -22,6 +26,7 @@ int main(void)
         {
             lastToggleTick = HAL_GetTick();
             HAL_GPIO_TogglePin(LED_GPIO_PORT, LED_PIN);
+            blink_counter++;
         }
     }
 }
@@ -76,6 +81,14 @@ static void Error_Handler(void)
     while (1)
     {
     }
+}
+
+/* Without this, SysTick_Handler stays aliased to Default_Handler (an
+ * infinite loop) and the first SysTick interrupt hangs the CPU before
+ * HAL_GetTick() ever advances. */
+void SysTick_Handler(void)
+{
+    HAL_IncTick();
 }
 
 #ifdef USE_FULL_ASSERT
